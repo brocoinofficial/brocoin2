@@ -1,0 +1,33 @@
+# /etc/conf.d/brocoind: config file for /etc/init.d/brocoind
+
+# Config file location
+#BROCOIND_CONFIGFILE="/etc/brocoin/brocoin.conf"
+
+# What directory to write pidfile to?  (created and owned by $BROCOIND_USER)
+#BROCOIND_PIDDIR="/var/run/brocoind"
+
+# What filename to give the pidfile
+#BROCOIND_PIDFILE="${BROCOIND_PIDDIR}/brocoind.pid"
+
+# Where to write brocoind data (be mindful that the blockchain is large)
+#BROCOIND_DATADIR="/var/lib/brocoind"
+
+# User and group to own brocoind process
+#BROCOIND_USER="brocoin"
+#BROCOIND_GROUP="brocoin"
+
+# Path to brocoind executable
+#BROCOIND_BIN="/usr/bin/brocoind"
+
+# Nice value to run brocoind under
+#BROCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#BROCOIND_OPTS=""
+
+# The timeout in seconds OpenRC will wait for brocoind to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+BROCOIND_SIGTERM_TIMEOUT=60

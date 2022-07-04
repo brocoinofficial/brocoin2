@@ -1,0 +1,92 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/brocoin/.brocoin" ]; then
+	BROCOIND_DEFAULT_DATADIR="/var/lib/brocoin/.brocoin"
+else
+	BROCOIND_DEFAULT_DATADIR="/var/lib/brocoind"
+fi
+
+BROCOIND_CONFIGFILE=${BROCOIND_CONFIGFILE:-/etc/brocoin/brocoin.conf}
+BROCOIND_PIDDIR=${BROCOIND_PIDDIR:-/var/run/brocoind}
+BROCOIND_PIDFILE=${BROCOIND_PIDFILE:-${BROCOIND_PIDDIR}/brocoind.pid}
+BROCOIND_DATADIR=${BROCOIND_DATADIR:-${BROCOIND_DEFAULT_DATADIR}}
+BROCOIND_USER=${BROCOIND_USER:-${BROCOIN_USER:-brocoin}}
+BROCOIND_GROUP=${BROCOIND_GROUP:-brocoin}
+BROCOIND_BIN=${BROCOIND_BIN:-/usr/bin/brocoind}
+BROCOIND_NICE=${BROCOIND_NICE:-${NICELEVEL:-0}}
+BROCOIND_OPTS="${BROCOIND_OPTS:-${BROCOIN_OPTS}}"
+
+name="Brocoin Core Daemon"
+description="Brocoin cryptocurrency P2P network daemon"
+
+command="/usr/bin/brocoind"
+command_args="-pid=\"${BROCOIND_PIDFILE}\" \
+		-conf=\"${BROCOIND_CONFIGFILE}\" \
+		-datadir=\"${BROCOIND_DATADIR}\" \
+		-daemon \
+		${BROCOIND_OPTS}"
+
+required_files="${BROCOIND_CONFIGFILE}"
+start_stop_daemon_args="-u ${BROCOIND_USER} \
+			-N ${BROCOIND_NICE} -w 2000"
+pidfile="${BROCOIND_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${BROCOIND_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${BROCOIND_USER}:${BROCOIND_GROUP}" \
+	"${BROCOIND_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${BROCOIND_USER}:${BROCOIND_GROUP}" \
+	"${BROCOIND_PIDDIR}"
+
+	checkpath -f \
+	-o ${BROCOIND_USER}:${BROCOIND_GROUP} \
+	-m 0660 \
+	${BROCOIND_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${BROCOIND_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run brocoind."
+		eerror "The setting must appear in ${BROCOIND_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Brocoin Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}
